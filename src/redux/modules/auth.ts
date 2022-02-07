@@ -24,7 +24,7 @@ const reducer = handleActions<AuthState, string>(
   {
     PENDING: (state) => ({
       ...state,
-      loading: false,
+      loading: true,
       error: null,
     }),
     SUCCESS: (state, action) => ({

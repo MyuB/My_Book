@@ -8,7 +8,7 @@ export default function SigninContainer() {
 
   const login = useCallback(
     (reqData) => {
-      dispatch(loginSagaStart);
+      dispatch(loginSagaStart(reqData));
     },
     [dispatch]
   );
