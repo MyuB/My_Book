@@ -2,7 +2,7 @@ import { push } from "connected-react-router";
 import { Action, createActions, handleActions } from "redux-actions";
 import { call, put, select, takeEvery, takeLatest } from "redux-saga/effects";
 import BookService from "../../services/BookService";
-import { BookType, BooksState, BookReqType } from "../../types";
+import { BookReqType, BooksState, BookType } from "../../types";
 
 const initialState: BooksState = {
   books: null,
@@ -21,11 +21,7 @@ export const { pending, success, fail } = createActions(
 
 const reducer = handleActions<BooksState, BookType[]>(
   {
-    PENDING: (state) => ({
-      ...state,
-      loading: true,
-      error: null,
-    }),
+    PENDING: (state) => ({ ...state, loading: true, error: null }),
     SUCCESS: (state, action) => ({
       books: action.payload,
       loading: false,
@@ -43,10 +39,16 @@ const reducer = handleActions<BooksState, BookType[]>(
 
 export default reducer;
 
-// saga
-export const { getBooks, addBook } = createActions("GET_BOOKS", "ADD_BOOK", {
-  prefix,
-});
+// saga 정의
+
+export const { getBooks, addBook, deleteBook } = createActions(
+  "GET_BOOKS",
+  "ADD_BOOK",
+  "DELETE_BOOK",
+  {
+    prefix,
+  }
+);
 
 function* getBooksSaga() {
   try {
@@ -68,14 +70,29 @@ function* addBookSaga(action: Action<BookReqType>) {
       token,
       action.payload
     );
-    const books: BookType[] = yield select((state) => state.books.book);
+    const books: BookType[] = yield select((state) => state.books.books);
     yield put(success([...books, book]));
     yield put(push("/"));
   } catch (error: any) {
-    yield put(fail(new Error(error?.respons?.data?.error || "UNKNOWN_ERROR")));
+    yield put(fail(new Error(error?.response?.data?.error || "UNKNOWN_ERROR")));
   }
 }
+
+function* deleteBookSaga(action: Action<number>) {
+  try {
+    const bookId = action.payload;
+    yield put(pending());
+    const token: string = yield select((state) => state.auth.token);
+    yield call(BookService.deleteBook, token, bookId);
+    const books: BookType[] = yield select((state) => state.books.books);
+    yield put(success(books.filter((book) => book.bookId !== bookId)));
+  } catch (error: any) {
+    yield put(fail(new Error(error?.response?.data?.error || "UNKNOWN_ERROR")));
+  }
+}
+
 export function* booksSaga() {
   yield takeLatest(`${prefix}/GET_BOOKS`, getBooksSaga);
   yield takeEvery(`${prefix}/ADD_BOOK`, addBookSaga);
+  yield takeEvery(`${prefix}/DELETE_BOOK`, deleteBookSaga);
 }
